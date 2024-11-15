@@ -1,16 +1,24 @@
 import streamlit as st
 from datetime import date
 import yfinance as yf
+import lstm  # Import the LSTM module (lstm.py)
+import pandas as pd
 
 # Constants for data range
 START = "2015-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
-# Title
-st.title("Stock Prediction App")
+# Enhanced Title
+st.markdown(
+    """
+    <h1 style='text-align: center; color: #4CAF50; font-family: Arial, sans-serif;'>
+    📈 Stock Prediction App 🚀
+    </h1>
+    """,
+    unsafe_allow_html=True
+)
 
 # Predefined dictionary of company names and ticker symbols
-# Ideally, replace this with a more comprehensive list or data source
 stock_mapping = {
     "3M": "MMM",
     "Abbott Laboratories": "ABT",
@@ -64,7 +72,6 @@ stock_mapping = {
     "Walmart": "WMT"
 }
 
-
 # Search bar with autocomplete suggestions
 st.text("Start typing the company name and select from the suggestions:")
 
@@ -85,7 +92,7 @@ if company_name:
         @st.cache_data
         def load_data(ticker):
             data = yf.download(ticker, START, TODAY)
-            data.reset_index(inplace=True)
+            data.reset_index(inplace=True)  # Ensure 'Date' is a column, not an index
             return data
 
         data_load_state = st.text("Loading data...")
@@ -95,6 +102,32 @@ if company_name:
         # Display raw data
         st.subheader("Raw data")
         st.write(data.tail())
+
+        # Preprocess the data for LSTM
+        x_train, y_train, scaler = lstm.preprocess_data(data)
+
+        # Build and train the LSTM model with a spinner
+        with st.spinner("Building and training the model. Please wait..."):
+            model = lstm.build_lstm_model(x_train.shape)
+            model = lstm.train_lstm_model(model, x_train, y_train)
+        st.success("Model training complete!")
+
+        # Make predictions
+        predictions = lstm.make_predictions(model, data, scaler)
+
+        # Align predictions with dates
+        prediction_days = len(data['Close']) - len(predictions)
+        predicted_dates = data['Date'].iloc[prediction_days:].reset_index(drop=True)
+
+        # Create a DataFrame for predictions
+        predicted_df = pd.DataFrame({
+            'Date': predicted_dates,
+            'Predicted Close': predictions.flatten()
+        })
+
+        # Display plot for Predicted Close Prices vs Time
+        st.subheader("Predicted Close Prices vs Time")
+        st.line_chart(predicted_df.set_index('Date')['Predicted Close'])
     else:
         st.write("Company ticker not found.")
 else:
