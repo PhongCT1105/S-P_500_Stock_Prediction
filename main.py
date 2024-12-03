@@ -1,186 +1,170 @@
 import streamlit as st
 from datetime import date
 import yfinance as yf
-import arima
 import lstm  # Import the LSTM module (lstm.py)
 import pandas as pd
-
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Constants for data range
 START = "2015-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
+# App Styling
+st.set_page_config(
+    page_title="Stock Prediction App",
+    page_icon="📈",
+    layout="centered",
+    initial_sidebar_state="expanded",
+)
 
-# Enhanced Title
+# Title
 st.markdown(
     """
-    <h1 style='text-align: center; color: #4CAF50; font-family: Arial, sans-serif;'>
-    📈 Stock Prediction App 🚀
-    </h1>
+    <style>
+        .title {
+            text-align: center;
+            color: #4CAF50;
+            font-family: Arial, sans-serif;
+        }
+        .subheader {
+            font-family: Arial, sans-serif;
+            color: #333333;
+        }
+    </style>
+    <h1 class='title'>📈 Stock Prediction App 🚀</h1>
+    <p class='subheader'>Analyze and Predict Stock Trends with Insights</p>
     """,
     unsafe_allow_html=True
 )
 
-
-# Predefined dictionary of company names and ticker symbols
+# Sidebar for Stock Selection
+st.sidebar.header("Stock Selection")
 stock_mapping = {
-    "3M": "MMM",
-    "Abbott Laboratories": "ABT",
-    "Adobe": "ADBE",
-    "Amazon": "AMZN",
-    "American Express": "AXP",
     "Apple": "AAPL",
-    "AT&T": "T",
-    "Bank of America": "BAC",
-    "Berkshire Hathaway": "BRK.B",
-    "Boeing": "BA",
-    "Caterpillar": "CAT",
-    "Chevron": "CVX",
-    "Cisco": "CSCO",
-    "Citigroup": "C",
-    "Coca-Cola": "KO",
-    "Comcast": "CMCSA",
-    "Disney": "DIS",
-    "Exxon Mobil": "XOM",
-    "Facebook (Meta)": "META",
-    "Ford Motor": "F",
-    "General Electric": "GE",
-    "Goldman Sachs": "GS",
-    "Google": "GOOGL",
-    "Home Depot": "HD",
-    "IBM": "IBM",
-    "Intel": "INTC",
-    "JPMorgan Chase": "JPM",
-    "Johnson & Johnson": "JNJ",
-    "Lockheed Martin": "LMT",
-    "Mastercard": "MA",
-    "McDonald's": "MCD",
-    "Merck": "MRK",
+    "Amazon": "AMZN",
     "Microsoft": "MSFT",
-    "Morgan Stanley": "MS",
-    "Netflix": "NFLX",
-    "Nike": "NKE",
-    "NVIDIA": "NVDA",
-    "PepsiCo": "PEP",
-    "Pfizer": "PFE",
-    "Procter & Gamble": "PG",
-    "Qualcomm": "QCOM",
-    "Salesforce": "CRM",
-    "Starbucks": "SBUX",
-    "Target": "TGT",
     "Tesla": "TSLA",
-    "Texas Instruments": "TXN",
-    "UnitedHealth Group": "UNH",
-    "Verizon": "VZ",
-    "Visa": "V",
-    "Walmart": "WMT"
+    "Google": "GOOGL",
 }
 
-
-# Search bar with autocomplete suggestions
-st.text("Start typing the company name and select from the suggestions:")
-
-
-# Convert company names to list for autocomplete
-company_names = list(stock_mapping.keys())
-
-
-# Search with autocomplete
-company_name = st.selectbox("Company Name", options=[""] + company_names)
-
+company_name = st.sidebar.selectbox(
+    "Select a Company", options=[""] + list(stock_mapping.keys())
+)
 
 if company_name:
-    ticker = stock_mapping.get(company_name)
-
+    ticker = stock_mapping[company_name]
 
     if ticker:
-        st.write(f"Selected company: {company_name} (Ticker: {ticker})")
-        n_years = st.slider("Years of prediction:", 1, 4)
+        st.sidebar.success(f"Selected: {company_name} ({ticker})")
+        n_years = st.sidebar.slider(
+            "Years of Prediction:", 1, 4, help="Choose the number of years to predict."
+        )
         period = n_years * 365
-
 
         @st.cache_data
         def load_data(ticker):
             data = yf.download(ticker, START, TODAY)
-            data.reset_index(inplace=True)  # Ensure 'Date' is a column, not an index
+            data.reset_index(inplace=True)
             return data
 
-
-        data_load_state = st.text("Loading data...")
+        st.sidebar.text("Loading stock data...")
         data = load_data(ticker)
-        data_load_state.text("Done!")
+        st.sidebar.success("Data loaded successfully!")
 
+        # Data Analysis Section
+        st.subheader(f"📊 Data Analysis and Insights for {company_name}")
+        st.write("### Key Metrics")
+        st.write(f"Date Range: {START} to {TODAY}")
+        st.write(f"Total Data Points: {data.shape[0]}")
 
-        # Display raw data
-        st.subheader("Raw data")
-        st.write(data.tail())
+        # Calculate key statistics
+        mean_price = data["Close"].mean()
+        max_price = data["Close"].max()
+        min_price = data["Close"].min()
+        st.write(
+            f"""
+            - **Average Closing Price**: ${float(mean_price):.2f}
+            - **Highest Closing Price**: ${float(max_price):.2f}
+            - **Lowest Closing Price**: ${float(min_price):.2f}
+            """
+        )
 
+        # Display historical trends
+        st.write("### Historical Data Visualization")
+        st.line_chart(data.set_index("Date")["Close"])
 
-        # ARIMA Model Training and Prediction
-        st.subheader("ARIMA Model Prediction")
-        train_data, test_data, closing_prices = arima.preprocess_data(data, START, TODAY)
+        # Volatility (Standard Deviation)
+        volatility = data["Close"].std()
+        st.write(f"- **Price Volatility (Standard Deviation)**: ${float(volatility):.2f}")
 
-
-        with st.spinner("Building the model. Please wait..."):
-            # Find the best ARIMA model order and train the model
-            best_model = arima.build_arima_model(train_data, test_data)
-        st.success("Model building complete!")
-
-
-        # Make predictions
-        arima_predictions = arima.make_predictions(best_model, test_data)
-        arima_predictions = arima_predictions[:len(test_data)]
-        arima_predictions = arima_predictions.reset_index(drop=True)
-        #arima_residuals = arima.calculate_residuals(best_model)
-
-
-        # Align predictions with dates
-        arima_prediction_days = len(data['Close']) - len(arima_predictions)
-        arima_predicted_dates = data['Date'].iloc[arima_prediction_days:].reset_index(drop=True)
-
-
-        # Create a DataFrame for ARIMA predictions
-        arima_predicted_df = pd.DataFrame({
-            'Date': arima_predicted_dates,
-            'ARIMA Predicted Close': arima_predictions
-        })
-
-
-        # Display plot for ARIMA Predicted Close Prices vs Time
-        st.line_chart(arima_predicted_df.set_index('Date')['ARIMA Predicted Close'])
-        #st.write(arima_residuals)
-       
-        # Preprocess the data for LSTM
+        # Performance Metrics Section (LSTM Predictions)
+        st.subheader(f"📈 Predictions and Performance Metrics for {company_name}")
         x_train, y_train, scaler = lstm.preprocess_data(data)
 
-
-        # Build and train the LSTM model with a spinner
-        with st.spinner("Building and training the model. Please wait..."):
+        with st.spinner("Building and training the model..."):
             model = lstm.build_lstm_model(x_train.shape)
             model = lstm.train_lstm_model(model, x_train, y_train)
         st.success("Model training complete!")
 
-
-        # Make predictions
+        # Predictions
         predictions = lstm.make_predictions(model, data, scaler)
+        prediction_days = len(data["Close"]) - len(predictions)
+        predicted_dates = data["Date"].iloc[prediction_days:].reset_index(drop=True)
 
+        # Calculate confidence intervals (±5% of predictions)
+        confidence_margin = 0.05  # 5% margin
+        upper_bound = predictions * (1 + confidence_margin)
+        lower_bound = predictions * (1 - confidence_margin)
 
-        # Align predictions with dates
-        prediction_days = len(data['Close']) - len(predictions)
-        predicted_dates = data['Date'].iloc[prediction_days:].reset_index(drop=True)
-
-
-        # Create a DataFrame for predictions
+        # Update the prediction DataFrame
         predicted_df = pd.DataFrame({
-            'Date': predicted_dates,
-            'Predicted Close': predictions.flatten()
+            "Date": predicted_dates,
+            "Predicted Close": predictions.flatten(),
+            "Upper Bound": upper_bound.flatten(),
+            "Lower Bound": lower_bound.flatten()
         })
 
+        # Display Performance Metrics
+        true_values = data["Close"].iloc[-len(predictions):].values
+        mae = np.mean(np.abs(predictions.flatten() - true_values))
+        mse = np.mean((predictions.flatten() - true_values) ** 2)
+        rmse = np.sqrt(mse)
 
-        # Display plot for Predicted Close Prices vs Time
-        st.subheader("Predicted Close Prices vs Time")
-        st.line_chart(predicted_df.set_index('Date')['Predicted Close'])
+        st.write(
+            f"""
+            - **Mean Absolute Error (MAE)**: ${mae:.2f}
+            - **Mean Squared Error (MSE)**: ${mse:.2f}
+            - **Root Mean Squared Error (RMSE)**: ${rmse:.2f}
+            """
+        )
+
+        # Plot predictions with confidence intervals
+        st.subheader("Predicted Close Prices with Confidence Intervals")
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Plot predicted close prices
+        ax.plot(predicted_df["Date"], predicted_df["Predicted Close"], label="Predicted", color="blue")
+        # Plot confidence intervals
+        ax.fill_between(
+            predicted_df["Date"],
+            predicted_df["Lower Bound"],
+            predicted_df["Upper Bound"],
+            color="blue",
+            alpha=0.2,
+            label="Confidence Interval (±5%)"
+        )
+
+        # Customize plot
+        ax.set_title(f"Predicted Close Prices for {company_name} with Confidence Intervals", fontsize=16)
+        ax.set_xlabel("Date", fontsize=12)
+        ax.set_ylabel("Close Price (USD)", fontsize=12)
+        ax.legend(loc="upper left")
+        plt.xticks(rotation=45)
+
+        # Streamlit display
+        st.pyplot(fig)
     else:
-        st.write("Company ticker not found.")
+        st.error("Invalid company selection.")
 else:
-    st.write("Please enter a company name to search.")
+    st.info("Please select a company to analyze.")

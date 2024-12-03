@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")  # To ignore warnings from ARIMA
 
 
 # Define parameter range
-p = d = q = range(0, 10)  # This gives a range of (0, 1, 2)
+p = d = q = 1  # This gives a range of (0, 1, 2)
 param_combinations = list(itertools.product(p, q))
 
 
