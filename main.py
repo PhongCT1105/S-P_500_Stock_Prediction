@@ -20,26 +20,26 @@ st.set_page_config(
 
 # Google Analytics script
 # Google Analytics script
-GA_TRACKING_CODE = """
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-PSQ3XQ4ZQR"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-PSQ3XQ4ZQR');
-</script>
-"""
+# GA_TRACKING_CODE = """
+# <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSQ3XQ4ZQR"></script>
+# <script>
+#   window.dataLayer = window.dataLayer || [];
+#   function gtag(){dataLayer.push(arguments);}
+#   gtag('js', new Date());
+#   gtag('config', 'G-PSQ3XQ4ZQR');
+# </script>
+# """
 
 
-# Inject Google Analytics
-def inject_google_analytics():
-    st.markdown(
-        GA_TRACKING_CODE,
-        unsafe_allow_html=True
-    )
+# # Inject Google Analytics
+# def inject_google_analytics():
+#     st.markdown(
+#         GA_TRACKING_CODE,
+#         unsafe_allow_html=True
+#     )
 
-# Call the function to inject GA
-inject_google_analytics()
+# # Call the function to inject GA
+# inject_google_analytics()
 
 # Title
 st.markdown(
