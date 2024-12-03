@@ -19,6 +19,7 @@ st.set_page_config(
 )
 
 # Google Analytics script
+# Google Analytics script
 GA_TRACKING_CODE = """
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSQ3XQ4ZQR"></script>
 <script>
@@ -28,6 +29,7 @@ GA_TRACKING_CODE = """
   gtag('config', 'G-PSQ3XQ4ZQR');
 </script>
 """
+
 
 # Inject Google Analytics
 def inject_google_analytics():
