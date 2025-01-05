@@ -68,7 +68,4 @@ This project demonstrates the use of traditional time series models (ARIMA) and 
 ## 🌐 Live Demo
 Check out the deployed web app: [Stock Price Predictor](https://stockpredictsp500.streamlit.app/)
 
----
 
-### 🖇️ Download the README File
-You can download the `README.md` file [here](README.md).
